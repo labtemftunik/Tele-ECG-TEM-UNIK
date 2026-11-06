@@ -46,19 +46,41 @@ const chart=new Chart($("ecgChart"),{
  plugins:{legend:{display:false},tooltip:{backgroundColor:"#071326",borderColor:"#263D5D",borderWidth:1,titleColor:"#00D9FF",bodyColor:"#EAF4FF",
  callbacks:{title:i=>`Waktu: ${i[0].parsed.x.toFixed(3)} s`,label:i=>`Amplitudo: ${i.parsed.y.toFixed(3)} mV`}}},
  scales:{
- x:{type:"linear",min:0,max:WINDOW_SECONDS,title:{display:true,text:"Waktu (detik)",color:"#9BAFC8"},ticks:{color:"#9BAFC8",stepSize:.1,maxTicksLimit:41,autoSkip:false,callback:v=>Number(v).toFixed(1)},grid:{color:"#263D5D",lineWidth:.7},border:{color:"#47617F"}},
+ x:{type:"linear",min:0,max:WINDOW_SECONDS,title:{display:true,text:"Waktu (detik)",color:"#9BAFC8"},ticks:{color:"#9BAFC8",stepSize:.1},grid:{color:"#263D5D",lineWidth:.7},border:{color:"#47617F"}},
  y:{min:Y_MIN,max:Y_MAX,title:{display:true,text:"Amplitudo (mV)",color:"#9BAFC8"},ticks:{color:"#9BAFC8",stepSize:.5},grid:{color:"#263D5D",lineWidth:.7},border:{color:"#47617F"}}
  }}
 });
 function status(el,text,cls){el.textContent=text;el.className=cls}
 function addSamples(samples){
  if(!Array.isArray(samples))return;
- for(const value of samples){const y=Number(value);if(!Number.isFinite(y))continue;elapsed+=1/SAMPLE_RATE_HZ;chart.data.datasets[0].data.push({x:elapsed,y});lastAmplitude=y}
- const cutoff=elapsed-WINDOW_SECONDS;
- chart.data.datasets[0].data=chart.data.datasets[0].data.filter(p=>p.x>=cutoff);
- chart.options.scales.x.min=Math.max(0,elapsed-WINDOW_SECONDS);
- chart.options.scales.x.max=Math.max(WINDOW_SECONDS,elapsed);
- chart.update("none");$("ampValue").textContent=lastAmplitude.toFixed(3);
+
+ for(const value of samples){
+   const y=Number(value);
+   if(!Number.isFinite(y))continue;
+
+   elapsed += 1/SAMPLE_RATE_HZ;
+
+   // Setelah mencapai 4 detik, mulai lagi dari 0
+   if(elapsed > WINDOW_SECONDS){
+     elapsed = 1/SAMPLE_RATE_HZ;
+     chart.data.datasets[0].data = [];
+   }
+
+   chart.data.datasets[0].data.push({
+     x: elapsed,
+     y: y
+   });
+
+   lastAmplitude = y;
+ }
+
+ // Sumbu waktu SELALU 0 sampai 4 detik
+ chart.options.scales.x.min = 0;
+ chart.options.scales.x.max = WINDOW_SECONDS;
+
+ chart.update("none");
+
+ $("ampValue").textContent = lastAmplitude.toFixed(3);
 }
 function onPayload(data){
  let p;try{p=JSON.parse(data)}catch(e){return}
