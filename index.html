@@ -8,7 +8,7 @@
 <style>
 :root{--bg:#050B18;--panel:#0B1629;--plot:#101F38;--grid:#263D5D;--cyan:#00D9FF;--green:#35E6A0;--red:#FF5364;--text:#EAF4FF;--muted:#9BAFC8;--border:#1D3452}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:22px;color:var(--text);background:var(--bg);font-family:Arial,Helvetica,sans-serif}
-.wrap{width:min(1100px,100%);margin:auto}header{text-align:center;margin:2px 0 20px}h1{color:var(--cyan);font-size:clamp(23px,4vw,34px);letter-spacing:3px;margin:0 0 7px}header p{color:var(--muted);margin:0;font-size:12px;letter-spacing:1px}
+.wrap{width:auto;margin:auto}header{text-align:center;margin:2px 0 20px}h1{color:var(--cyan);font-size:clamp(23px,4vw,34px);letter-spacing:3px;margin:0 0 7px}header p{color:var(--muted);margin:0;font-size:12px;letter-spacing:1px}
 .topline{height:1px;background:var(--border);margin:17px 0 20px}.metrics{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:14px;margin-bottom:15px}
 .metric,.graph-panel,.status-panel{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:17px 19px}
 .metric-label,.graph-title{color:var(--muted);font-size:12px;letter-spacing:1.4px}.bpm-value{color:var(--cyan);font-size:clamp(42px,7vw,60px);line-height:1.15;font-weight:700;margin-top:5px;font-variant-numeric:tabular-nums}
@@ -37,7 +37,7 @@ const MQTT_CONFIG={
  topic:"ecg/device01/waveform"
 };
 const WINDOW_SECONDS=4,SAMPLE_RATE_HZ=250,MAX_POINTS=WINDOW_SECONDS*SAMPLE_RATE_HZ;
-const Y_MIN=-3.0,Y_MAX=3.0;
+const Y_MIN=-1.5,Y_MAX=1.5;
 const $=id=>document.getElementById(id);
 let elapsed=0,lastDataAt=0,lastAmplitude=0,mqttClient=null;
 const chart=new Chart($("ecgChart"),{
@@ -53,37 +53,13 @@ const chart=new Chart($("ecgChart"),{
 function status(el,text,cls){el.textContent=text;el.className=cls}
 function addSamples(samples){
  if(!Array.isArray(samples))return;
-
- const ds=chart.data.datasets[0].data;
-
- for(const value of samples){
-   const y=Number(value);
-   if(!Number.isFinite(y))continue;
-
-   elapsed+=1/SAMPLE_RATE_HZ;
-   ds.push({x:elapsed,y});
-   lastAmplitude=y;
- }
-
- // Simpan hanya 4 detik terakhir.
+ for(const value of samples){const y=Number(value);if(!Number.isFinite(y))continue;elapsed+=1/SAMPLE_RATE_HZ;chart.data.datasets[0].data.push({x:elapsed,y});lastAmplitude=y}
  const cutoff=elapsed-WINDOW_SECONDS;
- while(ds.length && ds[0].x<cutoff) ds.shift();
-
- // Normalisasi waktu ke 0.0 ... 4.0 detik.
- // Sumbu tidak ikut bergeser atau berubah-ubah.
- const base=ds.length ? ds[0].x : elapsed;
-
- for(let i=0;i<ds.length;i++){
-   ds[i].x=Math.max(0,ds[i].x-base);
- }
-
- chart.options.scales.x.min=0;
- chart.options.scales.x.max=WINDOW_SECONDS;
-
- chart.update("none");
- $("ampValue").textContent=lastAmplitude.toFixed(3);
+ chart.data.datasets[0].data=chart.data.datasets[0].data.filter(p=>p.x>=cutoff);
+ chart.options.scales.x.min=Math.max(0,elapsed-WINDOW_SECONDS);
+ chart.options.scales.x.max=Math.max(WINDOW_SECONDS,elapsed);
+ chart.update("none");$("ampValue").textContent=lastAmplitude.toFixed(3);
 }
-
 function onPayload(data){
  let p;try{p=JSON.parse(data)}catch(e){return}
  if(!p||!Array.isArray(p.samples))return;
