@@ -1,111 +1,1049 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ECG Monitor</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
 <style>
-:root{--bg:#050B18;--panel:#0B1629;--plot:#101F38;--grid:#263D5D;--cyan:#00D9FF;--green:#35E6A0;--red:#FF5364;--text:#EAF4FF;--muted:#9BAFC8;--border:#1D3452}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:22px;color:var(--text);background:var(--bg);font-family:Arial,Helvetica,sans-serif}
-.wrap{width:auto;margin:auto}header{text-align:center;margin:2px 0 20px}h1{color:var(--cyan);font-size:clamp(23px,4vw,34px);letter-spacing:3px;margin:0 0 7px}header p{color:var(--muted);margin:0;font-size:12px;letter-spacing:1px}
-.topline{height:1px;background:var(--border);margin:17px 0 20px}.metrics{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:14px;margin-bottom:15px}
-.metric,.graph-panel,.status-panel{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:17px 19px}
-.metric-label,.graph-title{color:var(--muted);font-size:12px;letter-spacing:1.4px}.bpm-value{color:var(--cyan);font-size:clamp(42px,7vw,60px);line-height:1.15;font-weight:700;margin-top:5px;font-variant-numeric:tabular-nums}
-.unit{color:var(--muted);font-size:13px;margin-left:7px}.lead-value{font-size:clamp(24px,4vw,32px);font-weight:700;margin-top:16px}.mqtt-value{font-size:clamp(22px,3.5vw,29px);font-weight:700;margin-top:16px}
-.ok{color:var(--green)}.bad{color:var(--red)}.unknown{color:var(--muted)}.graph-panel{background:var(--plot);padding:15px 16px 12px}
-.graph-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}.amplitude-readout{color:var(--cyan);font-size:12px;font-variant-numeric:tabular-nums}
-.chart-wrap{position:relative;height:min(48vh,390px);min-height:250px}.status-panel{margin-top:15px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.status{font-size:12px;letter-spacing:.5px;color:var(--muted)}.status strong{font-weight:700;margin-left:4px}.footer{color:#7186A3;text-align:center;font-size:11px;margin:15px 0 0}
-@media(max-width:700px){.metrics{grid-template-columns:1.15fr 1fr 1fr;gap:8px}.metric{padding:12px 10px}.metric-label{font-size:10px;letter-spacing:.8px}.bpm-value{font-size:clamp(30px,7vw,42px)}.lead-value{font-size:clamp(17px,4vw,24px);margin-top:16px}.mqtt-value{font-size:clamp(16px,3.8vw,22px);margin-top:16px}}
-@media(max-width:560px){body{padding:10px}.metrics{grid-template-columns:1.15fr 1fr 1fr;gap:6px}.metric{padding:10px 7px}.metric-label{font-size:9px;letter-spacing:.4px}.bpm-value{font-size:30px}.unit{font-size:10px;margin-left:3px}.lead-value{font-size:16px;margin-top:14px}.mqtt-value{font-size:15px;margin-top:14px}.graph-panel{padding:12px 9px}.chart-wrap{min-height:230px;height:38vh}}
-</style></head>
-<body><main class="wrap">
-<header><h1>Tele-ECG MONITOR</h1><p>REAL-TIME ECG MONITORING SYSTEM</p></header><div class="topline"></div>
+:root{
+    --bg:#050B18;
+    --panel:#0B1629;
+    --plot:#101F38;
+    --grid:#263D5D;
+    --cyan:#00D9FF;
+    --green:#35E6A0;
+    --red:#FF5364;
+    --text:#EAF4FF;
+    --muted:#9BAFC8;
+    --border:#1D3452
+}
+
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    min-height:100vh;
+    padding:22px;
+    color:var(--text);
+    background:var(--bg);
+    font-family:Arial,Helvetica,sans-serif
+}
+
+.wrap{
+    width:auto;
+    margin:auto
+}
+
+header{
+    text-align:center;
+    margin:2px 0 20px
+}
+
+h1{
+    color:var(--cyan);
+    font-size:clamp(23px,4vw,34px);
+    letter-spacing:3px;
+    margin:0 0 7px
+}
+
+header p{
+    color:var(--muted);
+    margin:0;
+    font-size:12px;
+    letter-spacing:1px
+}
+
+.topline{
+    height:1px;
+    background:var(--border);
+    margin:17px 0 20px
+}
+
+.metrics{
+    display:grid;
+    grid-template-columns:1.25fr 1fr 1fr;
+    gap:14px;
+    margin-bottom:15px
+}
+
+.metric,.graph-panel,.status-panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:13px;
+    padding:17px 19px
+}
+
+.metric-label,.graph-title{
+    color:var(--muted);
+    font-size:12px;
+    letter-spacing:1.4px
+}
+
+.bpm-value{
+    color:var(--cyan);
+    font-size:clamp(42px,7vw,60px);
+    line-height:1.15;
+    font-weight:700;
+    margin-top:5px;
+    font-variant-numeric:tabular-nums
+}
+
+.unit{
+    color:var(--muted);
+    font-size:13px;
+    margin-left:7px
+}
+
+.lead-value{
+    font-size:clamp(24px,4vw,32px);
+    font-weight:700;
+    margin-top:16px
+}
+
+.mqtt-value{
+    font-size:clamp(22px,3.5vw,29px);
+    font-weight:700;
+    margin-top:16px
+}
+
+.ok{color:var(--green)}
+.bad{color:var(--red)}
+.unknown{color:var(--muted)}
+
+.graph-panel{
+    background:var(--plot);
+    padding:15px 16px 12px
+}
+
+.graph-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:9px
+}
+
+.amplitude-readout{
+    color:var(--cyan);
+    font-size:12px;
+    font-variant-numeric:tabular-nums
+}
+
+/*
+ * Chart wrapper.
+ * Chart.js berada di layer bawah.
+ * Canvas sweep berada di atas dan hanya menggambar waveform.
+ */
+.chart-wrap{
+    position:relative;
+    height:min(48vh,390px);
+    min-height:250px
+}
+
+#ecgChart{
+    position:relative;
+    z-index:1
+}
+
+#ecgSweepCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:2;
+    pointer-events:none
+}
+
+.status-panel{
+    margin-top:15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap
+}
+
+.status{
+    font-size:12px;
+    letter-spacing:.5px;
+    color:var(--muted)
+}
+
+.status strong{
+    font-weight:700;
+    margin-left:4px
+}
+
+.footer{
+    color:#7186A3;
+    text-align:center;
+    font-size:11px;
+    margin:15px 0 0
+}
+
+@media(max-width:700px){
+    .metrics{
+        grid-template-columns:1.15fr 1fr 1fr;
+        gap:8px
+    }
+
+    .metric{
+        padding:12px 10px
+    }
+
+    .metric-label{
+        font-size:10px;
+        letter-spacing:.8px
+    }
+
+    .bpm-value{
+        font-size:clamp(30px,7vw,42px)
+    }
+
+    .lead-value{
+        font-size:clamp(17px,4vw,24px);
+        margin-top:16px
+    }
+
+    .mqtt-value{
+        font-size:clamp(16px,3.8vw,22px);
+        margin-top:16px
+    }
+}
+
+@media(max-width:560px){
+    body{padding:10px}
+
+    .metrics{
+        grid-template-columns:1.15fr 1fr 1fr;
+        gap:6px
+    }
+
+    .metric{
+        padding:10px 7px
+    }
+
+    .metric-label{
+        font-size:9px;
+        letter-spacing:.4px
+    }
+
+    .bpm-value{
+        font-size:30px
+    }
+
+    .unit{
+        font-size:10px;
+        margin-left:3px
+    }
+
+    .lead-value{
+        font-size:16px;
+        margin-top:14px
+    }
+
+    .mqtt-value{
+        font-size:15px;
+        margin-top:14px
+    }
+
+    .graph-panel{
+        padding:12px 9px
+    }
+
+    .chart-wrap{
+        min-height:230px;
+        height:38vh
+    }
+}
+</style>
+</head>
+
+<body>
+<main class="wrap">
+
+<header>
+    <h1>Tele-ECG MONITOR</h1>
+    <p>REAL-TIME ECG MONITORING SYSTEM</p>
+</header>
+
+<div class="topline"></div>
+
 <section class="metrics">
-<div class="metric"><div class="metric-label">HEART RATE</div><div><span class="bpm-value" id="bpmValue">--</span><span class="unit">BPM</span></div></div>
-<div class="metric"><div class="metric-label">LEAD STATUS</div><div class="lead-value unknown" id="leadValue">WAITING</div></div>
-<div class="metric"><div class="metric-label">MQTT CONNECTION</div><div class="mqtt-value unknown" id="deviceMqttValue">WAITING</div></div>
+
+    <div class="metric">
+        <div class="metric-label">HEART RATE</div>
+        <div>
+            <span class="bpm-value" id="bpmValue">--</span>
+            <span class="unit">BPM</span>
+        </div>
+    </div>
+
+    <div class="metric">
+        <div class="metric-label">LEAD STATUS</div>
+        <div class="lead-value unknown" id="leadValue">WAITING</div>
+    </div>
+
+    <div class="metric">
+        <div class="metric-label">MQTT CONNECTION</div>
+        <div class="mqtt-value unknown" id="deviceMqttValue">WAITING</div>
+    </div>
+
 </section>
-<section class="graph-panel"><div class="graph-head"><div class="graph-title">ECG WAVEFORM</div><div class="amplitude-readout">AMPLITUDE: <span id="ampValue">--</span> mV</div></div><div class="chart-wrap"><canvas id="ecgChart"></canvas></div></section>
-<p class="footer">Tele-ECG Monitoring System | TEM UNIK</p></main>
+
+<section class="graph-panel">
+
+    <div class="graph-head">
+        <div class="graph-title">ECG WAVEFORM</div>
+
+        <div class="amplitude-readout">
+            AMPLITUDE:
+            <span id="ampValue">--</span> mV
+        </div>
+    </div>
+
+    <div class="chart-wrap">
+        <canvas id="ecgChart"></canvas>
+        <canvas id="ecgSweepCanvas"></canvas>
+    </div>
+
+</section>
+
+<p class="footer">Tele-ECG Monitoring System | TEM UNIK</p>
+
+</main>
+
 <script>
-/* Isi konfigurasi ini dari EMQX Cloud Serverless. Browser menggunakan MQTT over WSS. */
-const MQTT_CONFIG={
- host:"saa1f717.ala.asia-southeast1.emqxsl.com",port:8084,path:"/mqtt",
- username:"Tele-ECG-TEM-UNIK",password:"TEM123",
- topic:"ecg/device01/waveform"
+
+/* =====================================================
+   MQTT CONFIGURATION
+   ===================================================== */
+
+const MQTT_CONFIG = {
+    host:"saa1f717.ala.asia-southeast1.emqxsl.com",
+    port:8084,
+    path:"/mqtt",
+    username:"Tele-ECG-TEM-UNIK",
+    password:"TEM123",
+    topic:"ecg/device01/waveform"
 };
-const WINDOW_SECONDS=4,SAMPLE_RATE_HZ=250,MAX_POINTS=WINDOW_SECONDS*SAMPLE_RATE_HZ;
-const Y_MIN=-1.5,Y_MAX=1.5;
-const $=id=>document.getElementById(id);
-let elapsed=0,lastDataAt=0,lastAmplitude=0,mqttClient=null;
-const chart=new Chart($("ecgChart"),{
- type:"line",data:{datasets:[{label:"ECG",data:[],borderColor:"#00D9FF",backgroundColor:"rgba(0,217,255,.08)",borderWidth:1.8,pointRadius:0,tension:0,fill:false}]},
- options:{responsive:true,maintainAspectRatio:false,animation:false,normalized:true,parsing:false,
- plugins:{legend:{display:false},tooltip:{backgroundColor:"#071326",borderColor:"#263D5D",borderWidth:1,titleColor:"#00D9FF",bodyColor:"#EAF4FF",
- callbacks:{title:i=>`Waktu: ${i[0].parsed.x.toFixed(3)} s`,label:i=>`Amplitudo: ${i.parsed.y.toFixed(3)} mV`}}},
- scales:{
- x:{type:"linear",min:0,max:WINDOW_SECONDS,title:{display:true,text:"Waktu (detik)",color:"#9BAFC8"},ticks:{color:"#9BAFC8",stepSize:.1},grid:{color:"#263D5D",lineWidth:.7},border:{color:"#47617F"}},
- y:{min:Y_MIN,max:Y_MAX,title:{display:true,text:"Amplitudo (mV)",color:"#9BAFC8"},ticks:{color:"#9BAFC8",stepSize:.5},grid:{color:"#263D5D",lineWidth:.7},border:{color:"#47617F"}}
- }}
+
+
+/* =====================================================
+   ECG CONFIGURATION
+   ===================================================== */
+
+const WINDOW_SECONDS = 4;
+const SAMPLE_RATE_HZ = 250;
+const MAX_POINTS = WINDOW_SECONDS * SAMPLE_RATE_HZ;
+
+const Y_MIN = -1.5;
+const Y_MAX = 1.5;
+
+
+/* =====================================================
+   GLOBAL
+   ===================================================== */
+
+const $ = id => document.getElementById(id);
+
+let lastDataAt = 0;
+let lastAmplitude = 0;
+let mqttClient = null;
+
+
+/* =====================================================
+   ECG SWEEP CONFIGURATION
+   ===================================================== */
+
+/*
+ * Ini bukan lagi menggunakan buffer Chart.js sebagai
+ * waveform utama.
+
+ * Chart.js hanya menggambar:
+ * - sumbu X
+ * - sumbu Y
+ * - grid
+ * - label
+
+ * Canvas ecgSweepCanvas menggambar waveform seperti
+ * sweep pada TFT.
+ */
+
+const CLEAR_PIXELS = 20;
+
+
+/* =====================================================
+   CHART.JS
+   ===================================================== */
+
+const chart = new Chart($("ecgChart"), {
+
+    type:"line",
+
+    data:{
+        datasets:[]
+    },
+
+    options:{
+
+        responsive:true,
+
+        maintainAspectRatio:false,
+
+        animation:false,
+
+        normalized:true,
+
+        parsing:false,
+
+        interaction:{
+            mode:"nearest",
+            intersect:false
+        },
+
+        plugins:{
+
+            legend:{
+                display:false
+            },
+
+            tooltip:{
+                enabled:false
+            }
+        },
+
+        scales:{
+
+            x:{
+
+                type:"linear",
+
+                min:0,
+
+                max:WINDOW_SECONDS,
+
+                title:{
+                    display:true,
+                    text:"Waktu (detik)",
+                    color:"#9BAFC8"
+                },
+
+                ticks:{
+                    color:"#9BAFC8",
+                    stepSize:.1
+                },
+
+                grid:{
+                    color:"#263D5D",
+                    lineWidth:.7
+                },
+
+                border:{
+                    color:"#47617F"
+                }
+            },
+
+            y:{
+
+                min:Y_MIN,
+
+                max:Y_MAX,
+
+                title:{
+                    display:true,
+                    text:"Amplitudo (mV)",
+                    color:"#9BAFC8"
+                },
+
+                ticks:{
+                    color:"#9BAFC8",
+                    stepSize:.5
+                },
+
+                grid:{
+                    color:"#263D5D",
+                    lineWidth:.7
+                },
+
+                border:{
+                    color:"#47617F"
+                }
+            }
+        }
+    }
 });
-function status(el,text,cls){el.textContent=text;el.className=cls}
+
+
+/* =====================================================
+   SWEEP CANVAS
+   ===================================================== */
+
+const sweepCanvas = $("ecgSweepCanvas");
+const sweepCtx = sweepCanvas.getContext("2d");
+
+let sweepIndex = 0;
+
+let lastSweepX = -1;
+let lastSweepY = -1;
+
+let sweepDpr = 1;
+
+let plotLeft = 0;
+let plotRight = 0;
+let plotTop = 0;
+let plotBottom = 0;
+let plotWidth = 0;
+let plotHeight = 0;
+
+
+/* =====================================================
+   SINKRONISASI UKURAN CANVAS DENGAN CHART.JS
+   ===================================================== */
+
+function syncSweepCanvas(){
+
+    const wrap = sweepCanvas.parentElement;
+
+    const rect = wrap.getBoundingClientRect();
+
+    sweepDpr = window.devicePixelRatio || 1;
+
+    sweepCanvas.width =
+        Math.max(1, Math.round(rect.width * sweepDpr));
+
+    sweepCanvas.height =
+        Math.max(1, Math.round(rect.height * sweepDpr));
+
+    sweepCanvas.style.width = rect.width + "px";
+    sweepCanvas.style.height = rect.height + "px";
+
+    /*
+     * Canvas menggunakan koordinat CSS pixel.
+     */
+    sweepCtx.setTransform(
+        sweepDpr,
+        0,
+        0,
+        sweepDpr,
+        0,
+        0
+    );
+
+    const area = chart.chartArea;
+
+    if(!area){
+        return;
+    }
+
+    plotLeft = area.left;
+    plotRight = area.right;
+    plotTop = area.top;
+    plotBottom = area.bottom;
+
+    plotWidth = plotRight - plotLeft;
+    plotHeight = plotBottom - plotTop;
+
+    /*
+     * Setelah resize, jangan menghapus posisi sweep.
+     * Hanya bersihkan overlay karena posisi pixel berubah.
+     */
+    sweepCtx.clearRect(
+        0,
+        0,
+        rect.width,
+        rect.height
+    );
+
+    lastSweepX = -1;
+    lastSweepY = -1;
+}
+
+
+/* =====================================================
+   CLEAR AREA DI DEPAN CURSOR
+   ===================================================== */
+
+function clearSweepAhead(x){
+
+    if(plotWidth <= 0 || plotHeight <= 0){
+        return;
+    }
+
+    /*
+     * Bersihkan hanya area kecil di depan cursor.
+     * Grid Chart.js berada di bawah canvas ini,
+     * sehingga setelah clear, grid tetap terlihat.
+     */
+
+    const startX = Math.max(
+        plotLeft,
+        x - 1
+    );
+
+    const endX = Math.min(
+        plotRight,
+        x + CLEAR_PIXELS
+    );
+
+    sweepCtx.clearRect(
+        startX,
+        plotTop - 1,
+        endX - startX + 2,
+        plotHeight + 2
+    );
+}
+
+
+/* =====================================================
+   GAMBAR SATU SAMPLE
+   ===================================================== */
+
+function drawSample(value){
+
+    if(!Number.isFinite(value)){
+        return;
+    }
+
+    if(plotWidth <= 0 || plotHeight <= 0){
+        return;
+    }
+
+    /*
+     * Posisi X berdasarkan 1000 sample.
+     *
+     * 1000 sample = 4 detik @ 250 Hz.
+     */
+    const x =
+        plotLeft +
+        (sweepIndex / (MAX_POINTS - 1)) *
+        plotWidth;
+
+    /*
+     * Konversi nilai mV ke posisi pixel
+     * menggunakan scale Y milik Chart.js.
+     */
+    const y =
+        chart.scales.y.getPixelForValue(value);
+
+
+    /* -----------------------------------------------
+       1. Hapus area kecil di depan cursor
+       ----------------------------------------------- */
+
+    clearSweepAhead(x);
+
+
+    /* -----------------------------------------------
+       2. Gambar waveform
+       ----------------------------------------------- */
+
+    if(lastSweepX >= 0 && lastSweepY >= 0){
+
+        /*
+         * Jangan menghubungkan garis ketika cursor
+         * baru kembali dari kanan ke kiri.
+         */
+        if(x >= lastSweepX){
+
+            sweepCtx.beginPath();
+
+            sweepCtx.moveTo(
+                lastSweepX,
+                lastSweepY
+            );
+
+            sweepCtx.lineTo(
+                x,
+                y
+            );
+
+            sweepCtx.strokeStyle = "#00D9FF";
+            sweepCtx.lineWidth = 1.8;
+            sweepCtx.lineJoin = "round";
+            sweepCtx.lineCap = "round";
+
+            sweepCtx.stroke();
+        }
+    }
+
+
+    /* -----------------------------------------------
+       3. Simpan posisi terakhir
+       ----------------------------------------------- */
+
+    lastSweepX = x;
+    lastSweepY = y;
+
+
+    /* -----------------------------------------------
+       4. Cursor maju
+       ----------------------------------------------- */
+
+    sweepIndex++;
+
+
+    /* -----------------------------------------------
+       5. Jika sampai kanan -> kembali ke kiri
+       ----------------------------------------------- */
+
+    if(sweepIndex >= MAX_POINTS){
+
+        sweepIndex = 0;
+
+        /*
+         * Jangan sambungkan titik terakhir di kanan
+         * dengan titik pertama di kiri.
+         */
+        lastSweepX = -1;
+        lastSweepY = -1;
+    }
+}
+
+
+/* =====================================================
+   TAMBAH BATCH SAMPLE DARI ESP32
+   ===================================================== */
+
 function addSamples(samples){
- if(!Array.isArray(samples))return;
 
- for(const value of samples){
-   const y=Number(value);
-   if(!Number.isFinite(y))continue;
+    if(!Array.isArray(samples)){
+        return;
+    }
 
-   elapsed += 1/SAMPLE_RATE_HZ;
+    for(const value of samples){
 
-   // Setelah mencapai 4 detik, mulai lagi dari 0
-   if(elapsed > WINDOW_SECONDS){
-     elapsed = 1/SAMPLE_RATE_HZ;
-     chart.data.datasets[0].data = [];
-   }
+        const y = Number(value);
 
-   chart.data.datasets[0].data.push({
-     x: elapsed,
-     y: y
-   });
+        if(!Number.isFinite(y)){
+            continue;
+        }
 
-   lastAmplitude = y;
- }
+        drawSample(y);
 
- // Sumbu waktu SELALU 0 sampai 4 detik
- chart.options.scales.x.min = 0;
- chart.options.scales.x.max = WINDOW_SECONDS;
+        lastAmplitude = y;
+    }
 
- chart.update("none");
 
- $("ampValue").textContent = lastAmplitude.toFixed(3);
+    /*
+     * Sumbu X selalu tetap 0 sampai 4 detik.
+     */
+    chart.options.scales.x.min = 0;
+    chart.options.scales.x.max = WINDOW_SECONDS;
+
+
+    /*
+     * Tidak perlu chart.update() setiap batch.
+     *
+     * Kalau chart.update() dipanggil terus-menerus,
+     * Chart.js akan menggambar ulang seluruh chart
+     * dan efek sweep akan rusak.
+     */
+
+
+    $("ampValue").textContent =
+        lastAmplitude.toFixed(3);
 }
+
+
+/* =====================================================
+   RESIZE HANDLER
+   ===================================================== */
+
+window.addEventListener("resize", () => {
+
+    /*
+     * Biarkan Chart.js menyelesaikan resize terlebih dahulu.
+     */
+    requestAnimationFrame(() => {
+
+        syncSweepCanvas();
+
+    });
+
+});
+
+
+/*
+ * Jalankan setelah chart selesai dibuat.
+ */
+requestAnimationFrame(() => {
+
+    syncSweepCanvas();
+
+});
+
+
+/*
+ * ResizeObserver membuat canvas waveform
+ * selalu mengikuti ukuran chart-wrap.
+ */
+if("ResizeObserver" in window){
+
+    const resizeObserver =
+        new ResizeObserver(() => {
+
+            requestAnimationFrame(() => {
+
+                syncSweepCanvas();
+
+            });
+
+        });
+
+    resizeObserver.observe(
+        $("ecgChart").parentElement
+    );
+}
+
+
+/* =====================================================
+   STATUS
+   ===================================================== */
+
+function status(el,text,cls){
+
+    el.textContent = text;
+
+    el.classList.remove(
+        "ok",
+        "bad",
+        "unknown"
+    );
+
+    el.classList.add(cls);
+}
+
+
+/* =====================================================
+   MQTT PAYLOAD
+   ===================================================== */
+
 function onPayload(data){
- let p;try{p=JSON.parse(data)}catch(e){return}
- if(!p||!Array.isArray(p.samples))return;
- lastDataAt=Date.now();addSamples(p.samples);
- $("bpmValue").textContent=Number(p.bpm)>0?Math.round(Number(p.bpm)):"--";
- if(p.leadOff===true)status($("leadValue"),"LEAD OFF","bad");
- else if(p.leadOff===false)status($("leadValue"),"LEAD OK","ok");
- if(p.mqttConnected===true)status($("deviceMqttValue"),"ON","ok");
- else if(p.mqttConnected===false)status($("deviceMqttValue"),"OFF","bad");
+
+    let p;
+
+    try{
+
+        p = JSON.parse(data);
+
+    }catch(e){
+
+        return;
+    }
+
+
+    if(
+        !p ||
+        !Array.isArray(p.samples)
+    ){
+
+        return;
+    }
+
+
+    lastDataAt = Date.now();
+
+
+    /*
+     * Masukkan batch ECG ke sweep.
+     */
+    addSamples(p.samples);
+
+
+    /*
+     * BPM dari ESP32.
+     */
+    $("bpmValue").textContent =
+        Number(p.bpm) > 0
+            ? Math.round(Number(p.bpm))
+            : "--";
+
+
+    /*
+     * Lead status.
+     */
+    if(p.leadOff === true){
+
+        status(
+            $("leadValue"),
+            "LEAD OFF",
+            "bad"
+        );
+
+    }else if(p.leadOff === false){
+
+        status(
+            $("leadValue"),
+            "LEAD OK",
+            "ok"
+        );
+    }
+
+
+    /*
+     * MQTT status perangkat.
+     */
+    if(p.mqttConnected === true){
+
+        status(
+            $("deviceMqttValue"),
+            "ON",
+            "ok"
+        );
+
+    }else if(p.mqttConnected === false){
+
+        status(
+            $("deviceMqttValue"),
+            "OFF",
+            "bad"
+        );
+    }
 }
+
+
+/* =====================================================
+   MQTT CONNECTION
+   ===================================================== */
+
 function connectMQTT(){
- if(!window.mqtt){console.error("MQTT.js tidak berhasil dimuat.");return}
- if(MQTT_CONFIG.host==="YOUR_EMQX_HOST"||MQTT_CONFIG.username==="YOUR_MQTT_USERNAME"){
-  console.warn("Isi MQTT_CONFIG pada index.html.");return;
- }
- const url=`wss://${MQTT_CONFIG.host}:${MQTT_CONFIG.port}${MQTT_CONFIG.path}`;
- mqttClient=mqtt.connect(url,{username:MQTT_CONFIG.username,password:MQTT_CONFIG.password,
- clientId:"ecg_web_"+Math.random().toString(16).slice(2,10),clean:true,connectTimeout:10000,reconnectPeriod:3000,keepalive:30});
- mqttClient.on("connect",()=>{mqttClient.subscribe(MQTT_CONFIG.topic,{qos:0},e=>{if(e)console.error("Subscribe error:",e)})});
- mqttClient.on("error",e=>console.error("MQTT connection error:",e));
- mqttClient.on("message",(topic,msg)=>{if(topic===MQTT_CONFIG.topic)onPayload(msg.toString())});
+
+    if(!window.mqtt){
+
+        console.error(
+            "MQTT.js tidak berhasil dimuat."
+        );
+
+        return;
+    }
+
+
+    if(
+        MQTT_CONFIG.host === "YOUR_EMQX_HOST" ||
+        MQTT_CONFIG.username === "YOUR_MQTT_USERNAME"
+    ){
+
+        console.warn(
+            "Isi MQTT_CONFIG pada index.html."
+        );
+
+        return;
+    }
+
+
+    const url =
+        `wss://${MQTT_CONFIG.host}:${MQTT_CONFIG.port}${MQTT_CONFIG.path}`;
+
+
+    mqttClient = mqtt.connect(
+        url,
+        {
+            username:MQTT_CONFIG.username,
+            password:MQTT_CONFIG.password,
+
+            clientId:
+                "ecg_web_" +
+                Math.random()
+                    .toString(16)
+                    .slice(2,10),
+
+            clean:true,
+
+            connectTimeout:10000,
+
+            reconnectPeriod:3000,
+
+            keepalive:30
+        }
+    );
+
+
+    mqttClient.on(
+        "connect",
+        () => {
+
+            mqttClient.subscribe(
+                MQTT_CONFIG.topic,
+                {qos:0},
+
+                e => {
+
+                    if(e){
+
+                        console.error(
+                            "Subscribe error:",
+                            e
+                        );
+                    }
+                }
+            );
+        }
+    );
+
+
+    mqttClient.on(
+        "error",
+        e => {
+
+            console.error(
+                "MQTT connection error:",
+                e
+            );
+        }
+    );
+
+
+    mqttClient.on(
+        "message",
+        (topic,msg) => {
+
+            if(topic === MQTT_CONFIG.topic){
+
+                onPayload(
+                    msg.toString()
+                );
+            }
+        }
+    );
 }
-setInterval(()=>{if(lastDataAt&&Date.now()-lastDataAt>3000){
- status($("deviceMqttValue"),"UNKNOWN","unknown");$("bpmValue").textContent="--";
-}},500);
-window.addEventListener("load",connectMQTT);
-</script></body></html>
+
+
+/* =====================================================
+   WATCHDOG DATA
+   ===================================================== */
+
+setInterval(() => {
+
+    if(
+        lastDataAt &&
+        Date.now() - lastDataAt > 3000
+    ){
+
+        status(
+            $("deviceMqttValue"),
+            "UNKNOWN",
+            "unknown"
+        );
+
+        $("bpmValue").textContent = "--";
+    }
+
+},500);
+
+
+/* =====================================================
+   START
+   ===================================================== */
+
+window.addEventListener(
+    "load",
+    connectMQTT
+);
+
+</script>
+</body>
+</html>
